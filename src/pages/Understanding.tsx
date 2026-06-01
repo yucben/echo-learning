@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
@@ -9,10 +9,33 @@ import {
   FileText,
   Lightbulb,
   Trash2,
-  Plus
+  Plus,
+  Play,
+  Pause
 } from 'lucide-react'
 import { useStore } from '../utils/store'
 import type { Word } from '../types'
+
+// TTS player for Understanding page
+class TTSPlayer {
+  private utterance: SpeechSynthesisUtterance | null = null
+  
+  speak(text: string) {
+    this.cancel()
+    this.utterance = new SpeechSynthesisUtterance(text)
+    this.utterance.lang = 'en-US'
+    speechSynthesis.speak(this.utterance)
+  }
+  
+  cancel() {
+    speechSynthesis.cancel()
+    this.utterance = null
+  }
+  
+  isSpeaking() {
+    return speechSynthesis.speaking
+  }
+}
 
 export default function Understanding() {
   const { id } = useParams()
@@ -20,18 +43,46 @@ export default function Understanding() {
   const { materials, updateMaterialStatus, words, addWord, removeWord } = useStore()
   
   const material = materials.find(m => m.id === id)
+  const ttsRef = useRef<TTSPlayer>(new TTSPlayer())
   
   const [activeTab, setActiveTab] = useState<'transcript' | 'vocabulary' | 'notes'>('transcript')
   const [showTranslation, setShowTranslation] = useState(true)
   const [selectedWord, setSelectedWord] = useState<{ word: string; context: string } | null>(null)
   const [notes, setNotes] = useState('')
   const [newWord, setNewWord] = useState({ word: '', definition: '', phonetic: '' })
+  const [isPlaying, setIsPlaying] = useState(false)
+  
+  // Listen to current sentence
+  const [playingSentenceIndex, setPlayingSentenceIndex] = useState(-1)
   
   useEffect(() => {
     if (material) {
       updateMaterialStatus(material.id, 'understanding')
     }
+    return () => {
+      ttsRef.current.cancel()
+    }
   }, [material?.id])
+  
+  const playSentence = (sentence: string, index: number) => {
+    if (isPlaying && playingSentenceIndex === index) {
+      ttsRef.current.cancel()
+      setIsPlaying(false)
+      setPlayingSentenceIndex(-1)
+    } else {
+      setPlayingSentenceIndex(index)
+      setIsPlaying(true)
+      ttsRef.current.speak(sentence)
+      // When TTS ends, reset state
+      const checkEnd = setInterval(() => {
+        if (!ttsRef.current.isSpeaking()) {
+          setIsPlaying(false)
+          setPlayingSentenceIndex(-1)
+          clearInterval(checkEnd)
+        }
+      }, 500)
+    }
+  }
   
   if (!material) {
     return (
@@ -46,14 +97,7 @@ export default function Understanding() {
   
   const sentences = material.transcript.split(/(?<=[.!?])\s+/)
   
-  const handleWordClick = (sentence: string) => {
-    const words = sentence.split(/\s+/).filter(w => w.length > 3)
-    if (words.length > 0) {
-      const randomWord = words[Math.floor(Math.random() * words.length)]
-      setSelectedWord({ word: randomWord.replace(/[^a-zA-Z]/g, ''), context: sentence })
-    }
-  }
-  
+    
   const handleAddWord = () => {
     if (!newWord.word || !newWord.definition) return
     
@@ -152,7 +196,7 @@ export default function Understanding() {
               {/* English Transcript */}
               <div className="flex-1 p-6 overflow-auto border-r border-[var(--color-border)]">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="font-semibold">英文原文</h2>
+                  <h2 className="font-semibold">英文原文 (点击句子听读)</h2>
                   <button
                     onClick={() => setShowTranslation(!showTranslation)}
                     className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
@@ -169,12 +213,24 @@ export default function Understanding() {
                       animate={{ opacity: 1 }}
                       transition={{ delay: index * 0.02 }}
                       className="group p-3 rounded-lg hover:bg-[var(--color-bg-tertiary)] cursor-pointer transition-colors"
-                      onClick={() => handleWordClick(sentence)}
                     >
-                      <p className="leading-relaxed">{sentence}</p>
-                      <p className="text-sm text-blue-400 opacity-0 group-hover:opacity-100 mt-1">
-                        点击添加生词
-                      </p>
+                      <div className="flex items-start gap-3">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            playSentence(sentence, index)
+                          }}
+                          className={`mt-1 p-1 rounded-full ${playingSentenceIndex === index ? 'bg-amber-500 text-black' : 'bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)] hover:text-amber-500'}`}
+                        >
+                          {playingSentenceIndex === index ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                        </button>
+                        <div className="flex-1">
+                          <p className="leading-relaxed">{sentence}</p>
+                          <p className="text-sm text-blue-400 opacity-0 group-hover:opacity-100 mt-1">
+                            点击单词添加生词
+                          </p>
+                        </div>
+                      </div>
                     </motion.div>
                   ))}
                 </div>
@@ -271,7 +327,7 @@ export default function Understanding() {
                       <input
                         type="text"
                         value={newWord.phonetic}
-                        onChange={(e) => setNewWord({ ...newWord, phonetic: e.target.value })}
+                        onChange={(e) => setNewWord({...newWord, phonetic: e.target.value})}
                         placeholder="/eI/ 或 /kæt/"
                         className="w-full mt-1 bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] rounded-lg px-3 py-2"
                       />
@@ -280,7 +336,7 @@ export default function Understanding() {
                       <label className="text-sm text-[var(--color-text-secondary)]">释义</label>
                       <textarea
                         value={newWord.definition}
-                        onChange={(e) => setNewWord({ ...newWord, definition: e.target.value })}
+                        onChange={(e) => setNewWord({...newWord, definition: e.target.value})}
                         placeholder="输入中文释义..."
                         className="w-full mt-1 bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] rounded-lg px-3 py-2 h-20 resize-none"
                       />

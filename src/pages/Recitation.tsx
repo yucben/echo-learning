@@ -24,6 +24,44 @@ interface Segment {
   status: SegmentStatus
 }
 
+class TTSPlayer {
+  private utterance: SpeechSynthesisUtterance | null = null
+  private onEndCallback: (() => void) | null = null
+  
+  speak(text: string, onEnd?: () => void) {
+    this.cancel()
+    this.utterance = new SpeechSynthesisUtterance(text)
+    this.utterance.rate = 1
+    this.utterance.lang = 'en-US'
+    this.onEndCallback = onEnd || null
+    this.utterance.onend = () => {
+      if (this.onEndCallback) this.onEndCallback()
+    }
+    speechSynthesis.speak(this.utterance)
+  }
+  
+  pause() {
+    speechSynthesis.pause()
+  }
+  
+  resume() {
+    speechSynthesis.resume()
+  }
+  
+  cancel() {
+    speechSynthesis.cancel()
+    this.utterance = null
+  }
+  
+  isSpeaking() {
+    return speechSynthesis.speaking
+  }
+  
+  isPaused() {
+    return speechSynthesis.paused
+  }
+}
+
 export default function Recitation() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -37,20 +75,28 @@ export default function Recitation() {
   const [hintCount, setHintCount] = useState(0)
   const [practiceMode, setPracticeMode] = useState(false)
   const [startTime, setStartTime] = useState<number | null>(null)
+  const [segmentCompletion, setSegmentCompletion] = useState<Set<number>>(new Set())
   
-  const audioRef = useRef<HTMLAudioElement>(null)
+  const ttsRef = useRef<TTSPlayer | null>(null)
   
   // Split transcript into segments
   const segments: Segment[] = material?.transcript
-    .split(/\n\n+/)
+    .split("\n\n")
     .filter(s => s.trim())
     .map((text, index) => ({
       id: index,
       text: text.trim(),
-      startTime: (material.duration / (material.transcript.split(/\n\n+/).length)) * index,
-      endTime: (material.duration / (material.transcript.split(/\n\n+/).length)) * (index + 1),
-      status: 'pending' as SegmentStatus
+      startTime: 0,
+      endTime: 0,
+      status: segmentCompletion.has(index) ? 'completed' as SegmentStatus : 'pending' as SegmentStatus
     })) || []
+  
+  useEffect(() => {
+    ttsRef.current = new TTSPlayer()
+    return () => {
+      ttsRef.current?.cancel()
+    }
+  }, [])
   
   useEffect(() => {
     if (material) {
@@ -59,17 +105,34 @@ export default function Recitation() {
     }
   }, [material?.id])
   
+  const playCurrentSegment = useCallback(() => {
+    if (!ttsRef.current || !segments[currentSegmentId]) return
+    
+    const text = segments[currentSegmentId].text
+    ttsRef.current.speak(text, () => {
+      setIsPlaying(false)
+    })
+    setIsPlaying(true)
+  }, [currentSegmentId, segments])
+  
   const togglePlay = useCallback(() => {
-    if (!audioRef.current) return
+    if (!ttsRef.current || !material) return
+    
     if (isPlaying) {
-      audioRef.current.pause()
+      ttsRef.current.pause()
+      setIsPlaying(false)
     } else {
-      audioRef.current.play()
+      if (ttsRef.current.isPaused()) {
+        ttsRef.current.resume()
+        setIsPlaying(true)
+      } else {
+        playCurrentSegment()
+      }
     }
-    setIsPlaying(!isPlaying)
-  }, [isPlaying])
+  }, [isPlaying, playCurrentSegment, material])
   
   const handleSegmentComplete = () => {
+    setSegmentCompletion(prev => new Set([...prev, currentSegmentId]))
     if (currentSegmentId < segments.length - 1) {
       setCurrentSegmentId(currentSegmentId + 1)
     }
@@ -79,16 +142,8 @@ export default function Recitation() {
   const useHint = () => {
     if (hintCount < 3) {
       setHintCount(hintCount + 1)
+      playCurrentSegment()
     }
-  }
-  
-  const calculateSpeedScore = () => {
-    if (!startTime || currentSegmentId === 0) return 0
-    const timeElapsed = (Date.now() - startTime) / 1000 / 60
-    const expectedTime = material?.duration ? material.duration / 60 : 0
-    if (expectedTime === 0) return 0
-    const ratio = timeElapsed / expectedTime
-    return Math.min(100, Math.round(ratio * 100))
   }
   
   const handleFinish = () => {
@@ -113,20 +168,18 @@ export default function Recitation() {
     )
   }
   
-  const completedCount = segments.filter(s => s.status === 'completed').length
+  const completedCount = segmentCompletion.size
   const progress = segments.length > 0 ? (completedCount / segments.length) * 100 : 0
-  // Speed score calculated for future use
-calculateSpeedScore()
   
   return (
     <div className="h-[calc(100vh-72px)] flex flex-col">
-      <audio ref={audioRef} src={material.audioUrl} />
-      
-      {/* Header */}
       <div className="px-8 py-4 border-b border-[var(--color-border)]">
         <div className="flex items-center gap-4">
           <button 
-            onClick={() => navigate(`/understanding/${material.id}`)} 
+            onClick={() => {
+              ttsRef.current?.cancel()
+              navigate(`/understanding/${material.id}`)
+            }} 
             className="p-2 rounded-lg hover:bg-[var(--color-bg-tertiary)] transition-colors"
           >
             <ChevronLeft className="w-5 h-5" />
@@ -144,11 +197,8 @@ calculateSpeedScore()
         </div>
       </div>
       
-      {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Practice Area */}
         <div className="flex-1 p-8 flex flex-col max-w-3xl mx-auto">
-          {/* Progress Bar */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-[var(--color-text-secondary)]">整体进度</span>
@@ -163,7 +213,6 @@ calculateSpeedScore()
             </div>
           </div>
           
-          {/* Current Segment */}
           <div className="flex-1 flex flex-col items-center justify-center">
             <AnimatePresence mode="wait">
               <motion.div
@@ -186,7 +235,6 @@ calculateSpeedScore()
               </motion.div>
             </AnimatePresence>
             
-            {/* Controls */}
             <div className="flex items-center gap-4">
               <button 
                 onClick={() => setShowText(!showText)}
@@ -212,7 +260,6 @@ calculateSpeedScore()
               </button>
             </div>
             
-            {/* Practice Mode Toggle */}
             <div className="mt-8 flex items-center gap-4">
               <button
                 onClick={() => setPracticeMode(!practiceMode)}
@@ -241,7 +288,6 @@ calculateSpeedScore()
             </div>
           </div>
           
-          {/* Speed Indicator */}
           <div className="mt-6 flex items-center justify-center gap-4 text-sm">
             <Target className="w-4 h-4 text-[var(--color-text-secondary)]" />
             <span className="text-[var(--color-text-secondary)]">目标语速:</span>
@@ -251,7 +297,6 @@ calculateSpeedScore()
           </div>
         </div>
         
-        {/* Sidebar - Segment List */}
         <div className="w-80 border-l border-[var(--color-border)] p-4 overflow-auto">
           <h3 className="font-semibold mb-4 flex items-center gap-2">
             <Clock className="w-5 h-5" />
@@ -261,14 +306,18 @@ calculateSpeedScore()
             {segments.map((segment, index) => (
               <button
                 key={segment.id}
-                onClick={() => setCurrentSegmentId(index)}
+                onClick={() => {
+                  setCurrentSegmentId(index)
+                  ttsRef.current?.cancel()
+                  setIsPlaying(false)
+                }}
                 className={`w-full p-3 rounded-lg text-left flex items-center gap-3 transition-colors ${
                   currentSegmentId === index 
                     ? 'bg-amber-500/20 border border-amber-500/50' 
                     : 'bg-[var(--color-bg-tertiary)] hover:bg-[var(--color-border)]'
                 }`}
               >
-                {segment.status === 'completed' ? (
+                {segmentCompletion.has(index) ? (
                   <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0" />
                 ) : currentSegmentId === index ? (
                   <Circle className="w-5 h-5 text-amber-500 flex-shrink-0" />
