@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { HashRouter, Routes, Route } from 'react-router-dom'
 import Layout from './components/Layout'
 import Materials from './pages/Materials'
 import Dictation from './pages/Dictation'
@@ -8,7 +8,7 @@ import Dashboard from './pages/Dashboard'
 
 function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Layout>
         <Routes>
           <Route path="/" element={<Dashboard />} />
@@ -18,7 +18,7 @@ function App() {
           <Route path="/recitation/:id" element={<Recitation />} />
         </Routes>
       </Layout>
-    </BrowserRouter>
+    </HashRouter>
   )
 }
 
