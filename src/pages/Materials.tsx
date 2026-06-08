@@ -494,7 +494,7 @@ export default function Materials() {
                   onChange={handleFileSelect}
                   className="hidden"
                 />
-                <FileAudio className="w-12 h-12 text-[var(--color-text-secondary)] mx-auto mb-4" />
+                  <FileAudio className="w-12 h-12 text-[var(--color-text-secondary)] mx-auto mb-4" />
                 <p className="font-medium mb-1">点击选择音频文件</p>
                 <p className="text-sm text-[var(--color-text-secondary)]">
                   支持 MP3, WAV, M4A 格式
