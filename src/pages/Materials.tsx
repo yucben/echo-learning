@@ -12,7 +12,9 @@ import {
   Sparkles,
   X,
   FileAudio,
-  CheckCircle
+  CheckCircle,
+  Link,
+  Loader2
 } from 'lucide-react'
 import { useStore } from '../utils/store'
 import type { Material } from '../types'
@@ -46,15 +48,92 @@ export default function Materials() {
   
   // Upload modal state
   const [showUploadModal, setShowUploadModal] = useState(false)
-  const [uploadData, setUploadData] = useState({
+  const [uploadData, setUploadData] = useState<Record<string, any>>({
     title: '',
     titleEn: '',
     category: 'news' as Material['category'],
     difficulty: 'intermediate' as Material['difficulty'],
     transcript: '',
-    translation: ''
+    translation: '',
+    sourceUrl: '',
+    videoId: '',
+    coverUrl: ''
   })
   const fileInputRef = useRef<HTMLInputElement>(null)
+  
+  // B站 import state
+  const [uploadMode, setUploadMode] = useState<'file' | 'bilibili'>('bilibili')
+  const [bilibiliUrl, setBilibiliUrl] = useState('')
+  const [bilibiliLoading, setBilibiliLoading] = useState(false)
+  const [bilibiliError, setBilibiliError] = useState('')
+  const [bilibiliPreview, setBilibiliPreview] = useState<any>(null)
+  
+  const handleBilibiliImport = async () => {
+    if (!bilibiliUrl.trim()) return
+    setBilibiliLoading(true)
+    setBilibiliError('')
+    
+    try {
+      // Parse B站 URL
+      let bvid = ''
+      const bvMatch = bilibiliUrl.match(/BV[a-zA-Z0-9]{10}/)
+      if (bvMatch) {
+        bvid = bvMatch[0]
+      } else {
+        // Try to resolve short link
+        setBilibiliError('请输入有效的B站视频链接 (BV号)')
+        setBilibiliLoading(false)
+        return
+      }
+      
+      // Fetch video info from B站 API
+      const resp = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${bvid}`)
+      const data = await resp.json()
+      
+      if (data.code !== 0) {
+        setBilibiliError('视频信息获取失败: ' + (data.message || '未知错误'))
+        setBilibiliLoading(false)
+        return
+      }
+      
+      const v = data.data
+      setBilibiliPreview({
+        title: v.title || '',
+        duration: v.duration || 0,
+        coverUrl: v.pic || '',
+        videoId: bvid,
+        sourceUrl: `https://www.bilibili.com/video/${bvid}`,
+        description: v.desc || '',
+        owner: v.owner?.name || '',
+      })
+      
+      // Pre-fill form
+      setUploadData({
+        title: v.title || '',
+        titleEn: v.title || '',
+        category: detectCategory(v.title || '') as Material['category'],
+        difficulty: 'intermediate',
+        transcript: '',
+        translation: '',
+        sourceUrl: `https://www.bilibili.com/video/${bvid}`,
+        videoId: bvid,
+        coverUrl: v.pic || '',
+      })
+    } catch (e: any) {
+      setBilibiliError('网络错误: ' + e.message)
+    }
+    setBilibiliLoading(false)
+  }
+  
+  const detectCategory = (title: string): string => {
+    const t = title.toLowerCase()
+    if (t.includes('新闻') || t.includes('news')) return 'news'
+    if (t.includes('采访') || t.includes('访谈') || t.includes('interview')) return 'interview'
+    if (t.includes('记录') || t.includes('documentary')) return 'documentary'
+    if (t.includes('演讲') || t.includes('speech') || t.includes('ted')) return 'speech'
+    if (t.includes('ted')) return 'ted'
+    return 'speech'
+  }
   
   const filteredMaterials = materials.filter(m => {
     const matchSearch = m.title.toLowerCase().includes(search.toLowerCase()) || 
@@ -85,12 +164,15 @@ export default function Materials() {
       id: Date.now().toString(),
       title: uploadData.title,
       titleEn: uploadData.titleEn || uploadData.title,
-      duration: 1200, // Default 20 minutes
+      duration: (uploadData as any).duration || 1200,
       category: uploadData.category,
       difficulty: uploadData.difficulty,
-      audioUrl: '/samples/placeholder.mp3', // Placeholder for demo
+      audioUrl: '/samples/placeholder.mp3',
       transcript: uploadData.transcript,
       translation: uploadData.translation,
+      sourceUrl: (uploadData as any).sourceUrl,
+      videoId: (uploadData as any).videoId,
+      coverUrl: (uploadData as any).coverUrl,
       createdAt: Date.now(),
       status: 'pending'
     }
@@ -103,8 +185,14 @@ export default function Materials() {
       category: 'news',
       difficulty: 'intermediate',
       transcript: '',
-      translation: ''
+      translation: '',
+      sourceUrl: '',
+      videoId: '',
+      coverUrl: ''
     })
+    setBilibiliUrl('')
+    setBilibiliPreview(null)
+    setBilibiliError('')
   }
   
   return (
@@ -300,7 +388,101 @@ export default function Materials() {
                 </button>
               </div>
               
-              {/* File Input */}
+              {/* Upload Mode Tabs */}
+              <div className="flex mb-6 bg-[var(--color-bg-tertiary)] rounded-lg p-1">
+                <button
+                  onClick={() => setUploadMode('bilibili')}
+                  className={`flex-1 py-2 rounded-md text-sm font-medium transition-colors ${
+                    uploadMode === 'bilibili' 
+                      ? 'bg-[var(--color-bg-secondary)] text-[var(--color-accent)]' 
+                      : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
+                  }`}
+                >
+                  <Link className="w-4 h-4 inline mr-1" />
+                  B站链接导入
+                </button>
+                <button
+                  onClick={() => setUploadMode('file')}
+                  className={`flex-1 py-2 rounded-md text-sm font-medium transition-colors ${
+                    uploadMode === 'file' 
+                      ? 'bg-[var(--color-bg-secondary)] text-[var(--color-accent)]' 
+                      : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
+                  }`}
+                >
+                  <Upload className="w-4 h-4 inline mr-1" />
+                  本地上传
+                </button>
+              </div>
+
+              {/* B站链接导入 */}  
+              {uploadMode === 'bilibili' && (
+                <div className="mb-6">
+                  <label className="block text-sm text-[var(--color-text-secondary)] mb-2">
+                    粘贴B站视频链接
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={bilibiliUrl}
+                      onChange={(e) => { setBilibiliUrl(e.target.value); setBilibiliError(''); setBilibiliPreview(null) }}
+                      onKeyDown={(e) => e.key === 'Enter' && handleBilibiliImport()}
+                      placeholder="https://www.bilibili.com/video/BV..."
+                      className="flex-1 bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-[var(--color-accent)]"
+                    />
+                    <button
+                      onClick={handleBilibiliImport}
+                      disabled={bilibiliLoading || !bilibiliUrl.trim()}
+                      className="btn btn-primary text-sm disabled:opacity-50"
+                    >
+                      {bilibiliLoading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Search className="w-4 h-4" />
+                      )}
+                      解析
+                    </button>
+                  </div>
+                  {bilibiliError && (
+                    <p className="text-red-400 text-sm mt-2">{bilibiliError}</p>
+                  )}
+                  {bilibiliPreview && (
+                    <div className="mt-4 p-4 bg-[var(--color-bg-tertiary)] rounded-xl border border-[var(--color-border)]">
+                      <div className="flex gap-4">
+                        {bilibiliPreview.coverUrl && (
+                          <img 
+                            src={bilibiliPreview.coverUrl} 
+                            alt={bilibiliPreview.title}
+                            className="w-32 h-20 rounded-lg object-cover"
+                            crossOrigin="anonymous"
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-sm truncate">{bilibiliPreview.title}</h4>
+                          <p className="text-xs text-[var(--color-text-secondary)] mt-1">
+                            UP: {bilibiliPreview.owner}
+                            {' · '}
+                            {Math.floor(bilibiliPreview.duration / 60)}:
+                            {String(Math.floor(bilibiliPreview.duration % 60)).padStart(2, '0')}
+                          </p>
+                          <p className="text-xs text-amber-500 mt-2 flex items-center gap-1">
+                            <Sparkles className="w-3 h-3" />
+                            自动识别：已填入标题和时长
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {!bilibiliPreview && !bilibiliError && (
+                    <p className="text-xs text-[var(--color-text-secondary)] mt-2">
+                      支持 BV 号链接、b23.tv 短链。识别后自动填入视频信息。
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* File Input (only in file mode) */}
+              {uploadMode === 'file' && (
+              <div
               <div 
                 className="border-2 border-dashed border-[var(--color-border)] rounded-xl p-8 text-center mb-6 cursor-pointer hover:border-[var(--color-accent)] transition-colors"
                 onClick={() => fileInputRef.current?.click()}
