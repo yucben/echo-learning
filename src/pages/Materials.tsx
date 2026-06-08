@@ -499,7 +499,8 @@ export default function Materials() {
                   支持 MP3, WAV, M4A 格式
                 </p>
               </div>
-              
+              )}
+
               {/* Form Fields */}
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
