@@ -468,6 +468,22 @@ export default function Materials() {
                             <Sparkles className="w-3 h-3" />
                             自动识别：已填入标题和时长
                           </p>
+                          <div className="mt-3 p-3 bg-amber-500/10 rounded-lg border border-amber-500/20">
+                            <p className="text-xs text-amber-400 flex items-center gap-1 mb-2">
+                              <Sparkles className="w-3 h-3" />
+                              自动转录：可通过流水线生成英文原文和中文翻译
+                            </p>
+                            <div className="bg-[var(--color-bg-secondary)] rounded p-2 text-xs font-mono text-[var(--color-text-secondary)] overflow-x-auto">
+                              {`HF_ENDPOINT=https://hf-mirror.com python3 pipeline.py "${bilibiliUrl}" -o ./output`}
+                            </div>
+                            <p className="text-xs text-[var(--color-text-secondary)] mt-1">
+                              需要安装：pip install faster-whisper yt-dlp openai · 
+                              <a href="https://github.com/yucben/echo-learning/tree/master/tools/bilibili-asr" 
+                                 target="_blank" className="text-amber-400 hover:underline">
+                                查看文档
+                              </a>
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </div>
