@@ -10,6 +10,9 @@ export interface Material {
   translation?: string
   createdAt: number
   status: 'pending' | 'dictation' | 'understanding' | 'recitation' | 'completed'
+  sourceUrl?: string  // B站或YouTube原始链接
+  videoId?: string    // 视频ID (如 BV...)
+  coverUrl?: string   // 封面图URL
 }
 
 export interface DictationProgress {
