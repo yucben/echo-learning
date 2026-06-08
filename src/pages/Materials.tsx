@@ -483,7 +483,6 @@ export default function Materials() {
               {/* File Input (only in file mode) */}
               {uploadMode === 'file' && (
               <div
-              <div 
                 className="border-2 border-dashed border-[var(--color-border)] rounded-xl p-8 text-center mb-6 cursor-pointer hover:border-[var(--color-accent)] transition-colors"
                 onClick={() => fileInputRef.current?.click()}
               >
@@ -494,7 +493,7 @@ export default function Materials() {
                   onChange={handleFileSelect}
                   className="hidden"
                 />
-                  <FileAudio className="w-12 h-12 text-[var(--color-text-secondary)] mx-auto mb-4" />
+                <FileAudio className="w-12 h-12 text-[var(--color-text-secondary)] mx-auto mb-4" />
                 <p className="font-medium mb-1">点击选择音频文件</p>
                 <p className="text-sm text-[var(--color-text-secondary)]">
                   支持 MP3, WAV, M4A 格式
