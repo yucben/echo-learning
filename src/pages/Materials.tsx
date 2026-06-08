@@ -87,7 +87,10 @@ export default function Materials() {
       }
       
       // Fetch video info from B站 API
-      const resp = await fetch(`https://api.bilibili.com/x/web-interface/view?bvid=${bvid}`)
+      // B站 API 有 CORS 限制，通过代理请求
+      const bilibiliApiUrl = `https://api.bilibili.com/x/web-interface/view?bvid=${bvid}`
+      const corsProxy = 'https://corsproxy.io/?'
+      const resp = await fetch(corsProxy + encodeURIComponent(bilibiliApiUrl))
       const data = await resp.json()
       
       if (data.code !== 0) {
