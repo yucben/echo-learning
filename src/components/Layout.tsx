@@ -5,7 +5,7 @@ import {
   Library, 
   Settings,
   Mic,
-  ExternalLink
+  Github
 } from 'lucide-react'
 
 interface LayoutProps {
@@ -54,13 +54,13 @@ export default function Layout({ children }: LayoutProps) {
         
         <div className="flex items-center gap-2">
           <a
-            href="https://yucben.github.io/echo-learning/"
+            href="https://github.com/yucben/echo-learning"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 px-3 py-2 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-bg-tertiary)] transition-colors"
           >
-            <ExternalLink className="w-4 h-4" />
-            <span className="text-sm">在线预览</span>
+            <Github className="w-4 h-4" />
+            <span className="text-sm">查看源代码</span>
           </a>
           <button className="p-2 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-bg-tertiary)] transition-colors">
             <Settings className="w-5 h-5" />
