@@ -87,10 +87,32 @@ export default function Materials() {
       }
       
       // Fetch video info from B站 API
-      // B站 API 有 CORS 限制，通过代理请求
+      // B站 API 有 CORS 限制，通过多个代理尝试
       const bilibiliApiUrl = `https://api.bilibili.com/x/web-interface/view?bvid=${bvid}`
-      const corsProxy = 'https://corsproxy.io/?'
-      const resp = await fetch(corsProxy + encodeURIComponent(bilibiliApiUrl))
+      
+      // Try multiple CORS proxies in order
+      const corsProxies = [
+        (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+        (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+      ]
+      
+      let resp: Response | null = null
+      let lastError = ''
+      for (const proxyFn of corsProxies) {
+        try {
+          resp = await fetch(proxyFn(bilibiliApiUrl), { signal: AbortSignal.timeout(8000) })
+          if (resp.ok) break
+        } catch (e: any) {
+          lastError = e.message
+          continue
+        }
+      }
+      
+      if (!resp || !resp.ok) {
+        setBilibiliError('视频信息获取失败，请检查链接后重试')
+        setBilibiliLoading(false)
+        return
+      }
       const data = await resp.json()
       
       if (data.code !== 0) {
