@@ -1,10 +1,10 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  Search, 
-  Upload, 
-  Clock, 
+import {
+  Search,
+  Upload,
+  Clock,
   Play,
   ChevronRight,
   Tag,
@@ -14,10 +14,13 @@ import {
   FileAudio,
   CheckCircle,
   Link,
-  Loader2
+  Loader2,
+  AlertCircle
 } from 'lucide-react'
 import { useStore } from '../utils/store'
 import type { Material } from '../types'
+import { UPLOAD_LIMITS, sanitizeText, formatBytes } from '../utils/uploadLimits'
+import { saveAudioFile } from '../utils/fileStorage'
 
 const categoryLabels = {
   news: '新闻',
@@ -60,7 +63,11 @@ export default function Materials() {
     coverUrl: ''
   })
   const fileInputRef = useRef<HTMLInputElement>(null)
-  
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const lastUploadTimeRef = useRef(0)
+
   // B站 import state
   const [uploadMode, setUploadMode] = useState<'file' | 'bilibili'>('bilibili')
   const [bilibiliUrl, setBilibiliUrl] = useState('')
@@ -97,13 +104,11 @@ export default function Materials() {
       ]
       
       let resp: Response | null = null
-      let lastError = ''
       for (const proxyFn of corsProxies) {
         try {
           resp = await fetch(proxyFn(bilibiliApiUrl), { signal: AbortSignal.timeout(8000) })
           if (resp.ok) break
-        } catch (e: any) {
-          lastError = e.message
+        } catch {
           continue
         }
       }
@@ -170,54 +175,164 @@ export default function Materials() {
   
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) {
-      // For demo, we use a placeholder audio URL
-      // In production, you'd upload to a server or use IndexedDB
-      const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '')
-      setUploadData(prev => ({
-        ...prev,
-        titleEn: nameWithoutExt,
-        title: nameWithoutExt
-      }))
+    if (!file) {
+      setSelectedFile(null)
+      return
     }
+
+    setUploadError(null)
+
+    // 1. 危险扩展名兜底
+    if (UPLOAD_LIMITS.DANGEROUS_EXT.test(file.name)) {
+      setUploadError(`不允许的文件类型：${file.name.split('.').pop()}`)
+      e.target.value = ''
+      setSelectedFile(null)
+      return
+    }
+    // 2. 校验文件类型
+    const validType = UPLOAD_LIMITS.ALLOWED_AUDIO_TYPES.includes(file.type) ||
+                      UPLOAD_LIMITS.ALLOWED_AUDIO_EXT.test(file.name)
+    if (!validType) {
+      setUploadError('仅支持 MP3 / WAV / M4A 格式的音频文件')
+      e.target.value = ''
+      setSelectedFile(null)
+      return
+    }
+    // 3. 校验文件大小
+    if (file.size > UPLOAD_LIMITS.AUDIO_SIZE_MAX) {
+      setUploadError(`文件超过 ${formatBytes(UPLOAD_LIMITS.AUDIO_SIZE_MAX)} 上限（当前 ${formatBytes(file.size)}）`)
+      e.target.value = ''
+      setSelectedFile(null)
+      return
+    }
+    // 4. 校验非空
+    if (file.size === 0) {
+      setUploadError('文件为空，请重新选择')
+      e.target.value = ''
+      setSelectedFile(null)
+      return
+    }
+
+    setSelectedFile(file)
+    const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '')
+    setUploadData(prev => ({
+      ...prev,
+      titleEn: nameWithoutExt,
+      title: nameWithoutExt
+    }))
   }
   
-  const handleUpload = () => {
-    if (!uploadData.title || !uploadData.transcript) return
-    
-    const newMaterial: Material = {
-      id: Date.now().toString(),
-      title: uploadData.title,
-      titleEn: uploadData.titleEn || uploadData.title,
-      duration: (uploadData as any).duration || 1200,
-      category: uploadData.category,
-      difficulty: uploadData.difficulty,
-      audioUrl: '/samples/placeholder.mp3',
-      transcript: uploadData.transcript,
-      translation: uploadData.translation,
-      sourceUrl: (uploadData as any).sourceUrl,
-      videoId: (uploadData as any).videoId,
-      coverUrl: (uploadData as any).coverUrl,
-      createdAt: Date.now(),
-      status: 'pending'
+  const handleUpload = async () => {
+    setUploadError(null)
+
+    // === Rate limit ===
+    const now = Date.now()
+    if (now - lastUploadTimeRef.current < UPLOAD_LIMITS.UPLOAD_COOLDOWN_MS) {
+      setUploadError('操作太频繁，请稍后再试')
+      return
     }
-    
-    addMaterial(newMaterial)
+
+    // === 标题校验 ===
+    const cleanTitle = uploadData.title.trim()
+    const cleanTitleEn = uploadData.titleEn.trim()
+    if (!cleanTitle) { setUploadError('请填写中文标题'); return }
+    if (!cleanTitleEn) { setUploadError('请填写英文标题'); return }
+    if (cleanTitle.length > UPLOAD_LIMITS.TITLE_MAX) {
+      setUploadError(`中文标题超过 ${UPLOAD_LIMITS.TITLE_MAX} 字符上限`); return
+    }
+    if (cleanTitleEn.length > UPLOAD_LIMITS.TITLE_EN_MAX) {
+      setUploadError(`英文标题超过 ${UPLOAD_LIMITS.TITLE_EN_MAX} 字符上限`); return
+    }
+
+    // === 原文校验 ===
+    const cleanTranscript = uploadData.transcript.trim()
+    if (!cleanTranscript) { setUploadError('请填写英文原文'); return }
+    if (cleanTranscript.length > UPLOAD_LIMITS.TRANSCRIPT_MAX) {
+      setUploadError(
+        `英文原文超过 ${UPLOAD_LIMITS.TRANSCRIPT_MAX.toLocaleString()} 字符上限（${formatBytes(cleanTranscript.length)}）`
+      ); return
+    }
+
+    // === 翻译校验 ===
+    const cleanTranslation = uploadData.translation.trim()
+    if (cleanTranslation.length > UPLOAD_LIMITS.TRANSLATION_MAX) {
+      setUploadError(
+        `中文翻译超过 ${UPLOAD_LIMITS.TRANSLATION_MAX.toLocaleString()} 字符上限（${formatBytes(cleanTranslation.length)}）`
+      ); return
+    }
+
+    // === 数量 / 总文本上限 ===
+    if (materials.length >= UPLOAD_LIMITS.MATERIALS_LIMIT) {
+      setUploadError(`已达素材上限（${UPLOAD_LIMITS.MATERIALS_LIMIT} 篇），请先删除旧的素材`); return
+    }
+    const totalChars = materials.reduce(
+      (sum, m) => sum + m.transcript.length + (m.translation?.length || 0), 0
+    )
+    if (totalChars + cleanTranscript.length + cleanTranslation.length > UPLOAD_LIMITS.TOTAL_TEXT_CHARS) {
+      setUploadError(`总素材文本超过 ${formatBytes(UPLOAD_LIMITS.TOTAL_TEXT_CHARS)} 上限，请先删除部分素材`); return
+    }
+
+    setIsUploading(true)
+    lastUploadTimeRef.current = now
+
+    try {
+      // === 存储到 IndexedDB（如果选了文件）===
+      const newId = Date.now().toString()
+      let audioUrl = '/samples/placeholder.mp3'
+      if (selectedFile) {
+        await saveAudioFile(newId, selectedFile)
+        audioUrl = `idb://${newId}`
+      }
+
+      const newMaterial: Material = {
+        id: newId,
+        title: sanitizeText(cleanTitle),
+        titleEn: sanitizeText(cleanTitleEn),
+        duration: (uploadData as any).duration || 1200,
+        category: uploadData.category,
+        difficulty: uploadData.difficulty,
+        audioUrl,
+        transcript: sanitizeText(cleanTranscript),
+        translation: cleanTranslation ? sanitizeText(cleanTranslation) : '',
+        sourceUrl: (uploadData as any).sourceUrl || undefined,
+        videoId: (uploadData as any).videoId || undefined,
+        coverUrl: (uploadData as any).coverUrl || undefined,
+        createdAt: Date.now(),
+        status: 'pending'
+      }
+
+      addMaterial(newMaterial)
+
+      setShowUploadModal(false)
+      setUploadData({
+        title: '',
+        titleEn: '',
+        category: 'news',
+        difficulty: 'intermediate',
+        transcript: '',
+        translation: '',
+        sourceUrl: '',
+        videoId: '',
+        coverUrl: ''
+      })
+      setSelectedFile(null)
+      setBilibiliUrl('')
+      setBilibiliPreview(null)
+      setBilibiliError('')
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    } catch (err) {
+      setUploadError('保存失败：' + (err instanceof Error ? err.message : '未知错误'))
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
+  const handleCloseModal = () => {
+    if (isUploading) return
     setShowUploadModal(false)
-    setUploadData({
-      title: '',
-      titleEn: '',
-      category: 'news',
-      difficulty: 'intermediate',
-      transcript: '',
-      translation: '',
-      sourceUrl: '',
-      videoId: '',
-      coverUrl: ''
-    })
-    setBilibiliUrl('')
-    setBilibiliPreview(null)
-    setBilibiliError('')
+    setUploadError(null)
+    setSelectedFile(null)
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
   
   return (
@@ -394,7 +509,7 @@ export default function Materials() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-            onClick={() => setShowUploadModal(false)}
+            onClick={handleCloseModal}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
@@ -406,7 +521,7 @@ export default function Materials() {
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold">上传新素材</h2>
                 <button 
-                  onClick={() => setShowUploadModal(false)}
+                  onClick={handleCloseModal}
                   className="p-2 rounded-lg hover:bg-[var(--color-bg-tertiary)]"
                 >
                   <X className="w-5 h-5" />
@@ -629,18 +744,27 @@ export default function Materials() {
                 </div>
               </div>
               
+              {/* 错误提示 */}
+              {uploadError && (
+                <div className="mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 flex items-start gap-2">
+                  <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-red-400 flex-1">{uploadError}</p>
+                </div>
+              )}
+
               {/* Action Buttons */}
-              <div className="flex justify-end gap-3 mt-6">
-                <button 
-                  onClick={() => setShowUploadModal(false)}
-                  className="btn btn-secondary"
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 mt-6">
+                <button
+                  onClick={handleCloseModal}
+                  disabled={isUploading}
+                  className="btn btn-secondary disabled:opacity-50 min-h-[44px]"
                 >
                   取消
                 </button>
-                <button 
+                <button
                   onClick={handleUpload}
-                  disabled={!uploadData.title || !uploadData.transcript}
-                  className="btn btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isUploading || !uploadData.title.trim() || !uploadData.transcript.trim()}
+                  className="btn btn-primary disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
                 >
                   <CheckCircle className="w-5 h-5" />
                   上传素材

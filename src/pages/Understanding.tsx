@@ -119,34 +119,41 @@ export default function Understanding() {
   const materialWords = words.filter(w => w.materialId === material.id)
   
   return (
-    <div className="h-[calc(100vh-72px)] flex flex-col">
+    <div className="h-[calc(100vh-56px)] sm:h-[calc(100vh-64px)] md:h-[calc(100vh-72px)]
+                    flex flex-col">
       {/* Header */}
-      <div className="px-8 py-4 border-b border-[var(--color-border)]">
-        <div className="flex items-center gap-4">
-          <button onClick={() => navigate(`/dictation/${material.id}`)} className="p-2 rounded-lg hover:bg-[var(--color-bg-tertiary)] transition-colors">
+      <div className="px-3 sm:px-6 lg:px-8 py-3 sm:py-4 border-b border-[var(--color-border)] flex-shrink-0">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <button onClick={() => navigate(`/dictation/${material.id}`)} className="p-2 rounded-lg hover:bg-[var(--color-bg-tertiary)] transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center flex-shrink-0">
             <ChevronLeft className="w-5 h-5" />
           </button>
-          <div className="flex-1">
-            <h1 className="font-semibold">{material.titleEn}</h1>
-            <p className="text-sm text-[var(--color-text-secondary)]">{material.title}</p>
+          <div className="flex-1 min-w-0">
+            <h1 className="font-semibold text-sm sm:text-base truncate">{material.titleEn}</h1>
+            <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] truncate">{material.title}</p>
           </div>
-          <span className="text-sm text-emerald-400 px-3 py-1 bg-emerald-500/10 rounded-full">
+          <span className="hidden md:inline-block text-sm text-emerald-400 px-3 py-1 bg-emerald-500/10 rounded-full whitespace-nowrap">
             第二阶段：深度理解
           </span>
-          <button onClick={() => navigate(`/recitation/${material.id}`)} className="btn btn-primary">
-            进入背诵
-            <ChevronRight className="w-5 h-5" />
+          <button onClick={() => navigate(`/recitation/${material.id}`)} className="btn btn-primary text-sm whitespace-nowrap min-h-[44px]">
+            <span className="hidden sm:inline">进入背诵</span>
+            <span className="sm:hidden">背诵</span>
+            <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         </div>
       </div>
-      
-      {/* Tab Navigation */}
-      <div className="flex border-b border-[var(--color-border)]">
+
+      {/* 移动端阶段标签 */}
+      <div className="md:hidden px-3 py-2 bg-emerald-500/10 border-b border-[var(--color-border)] flex-shrink-0">
+        <span className="text-xs text-emerald-400 font-medium">第二阶段：深度理解</span>
+      </div>
+
+      {/* Tab Navigation — 移动端横向滚动 */}
+      <div className="flex border-b border-[var(--color-border)] overflow-x-auto flex-shrink-0 scrollbar-hide">
         <button
           onClick={() => setActiveTab('transcript')}
-          className={`flex items-center gap-2 px-6 py-3 border-b-2 transition-colors ${
-            activeTab === 'transcript' 
-              ? 'border-amber-500 text-amber-500' 
+          className={`flex items-center gap-2 px-4 sm:px-6 py-3 border-b-2 transition-colors whitespace-nowrap min-h-[48px] ${
+            activeTab === 'transcript'
+              ? 'border-amber-500 text-amber-500'
               : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
           }`}
         >
@@ -155,9 +162,9 @@ export default function Understanding() {
         </button>
         <button
           onClick={() => setActiveTab('vocabulary')}
-          className={`flex items-center gap-2 px-6 py-3 border-b-2 transition-colors ${
-            activeTab === 'vocabulary' 
-              ? 'border-amber-500 text-amber-500' 
+          className={`flex items-center gap-2 px-4 sm:px-6 py-3 border-b-2 transition-colors whitespace-nowrap min-h-[48px] ${
+            activeTab === 'vocabulary'
+              ? 'border-amber-500 text-amber-500'
               : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
           }`}
         >
@@ -171,9 +178,9 @@ export default function Understanding() {
         </button>
         <button
           onClick={() => setActiveTab('notes')}
-          className={`flex items-center gap-2 px-6 py-3 border-b-2 transition-colors ${
-            activeTab === 'notes' 
-              ? 'border-amber-500 text-amber-500' 
+          className={`flex items-center gap-2 px-4 sm:px-6 py-3 border-b-2 transition-colors whitespace-nowrap min-h-[48px] ${
+            activeTab === 'notes'
+              ? 'border-amber-500 text-amber-500'
               : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
           }`}
         >
@@ -194,9 +201,9 @@ export default function Understanding() {
               className="flex-1 flex"
             >
               {/* English Transcript */}
-              <div className="flex-1 p-6 overflow-auto border-r border-[var(--color-border)]">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="font-semibold">英文原文 (点击句子听读)</h2>
+              <div className="flex-1 p-4 sm:p-6 overflow-auto border-b md:border-b-0 md:border-r border-[var(--color-border)] min-w-0">
+                <div className="flex items-center justify-between mb-3 sm:mb-4 gap-2">
+                  <h2 className="font-semibold text-sm sm:text-base">英文原文 (点击句子听读)</h2>
                   <button
                     onClick={() => setShowTranslation(!showTranslation)}
                     className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
@@ -240,16 +247,19 @@ export default function Understanding() {
               <AnimatePresence>
                 {showTranslation && material.translation && (
                   <motion.div
-                    initial={{ width: 0, opacity: 0 }}
-                    animate={{ width: 400, opacity: 1 }}
-                    exit={{ width: 0, opacity: 0 }}
-                    className="p-6 overflow-auto bg-[var(--color-bg-secondary)]"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="md:!w-[400px] md:!h-auto overflow-hidden bg-[var(--color-bg-secondary)]
+                               border-t md:border-t-0 md:border-l border-[var(--color-border)] flex-shrink-0"
                   >
-                    <h2 className="font-semibold mb-4 text-[var(--color-text-secondary)]">中文翻译</h2>
-                    <div className="space-y-4 text-[var(--color-text-secondary)]">
-                      {material.translation.split(/(?<=[.!?])\s+/).map((sentence, index) => (
-                        <p key={index} className="leading-relaxed">{sentence}</p>
-                      ))}
+                    <div className="p-4 sm:p-6 overflow-auto max-h-[40vh] md:max-h-none">
+                      <h2 className="font-semibold mb-3 sm:mb-4 text-sm sm:text-base text-[var(--color-text-secondary)]">中文翻译</h2>
+                      <div className="space-y-3 sm:space-y-4 text-sm text-[var(--color-text-secondary)]">
+                        {material.translation.split(/(?<=[.!?])\s+/).map((sentence, index) => (
+                          <p key={index} className="leading-relaxed">{sentence}</p>
+                        ))}
+                      </div>
                     </div>
                   </motion.div>
                 )}
@@ -263,42 +273,43 @@ export default function Understanding() {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
-              className="flex-1 flex"
+              className="flex-1 flex flex-col md:flex-row overflow-hidden"
             >
               {/* Word List */}
-              <div className="flex-1 p-6 overflow-auto">
-                <h2 className="font-semibold mb-4">本篇词汇 ({materialWords.length})</h2>
+              <div className="flex-1 p-4 sm:p-6 overflow-auto min-w-0">
+                <h2 className="font-semibold mb-3 sm:mb-4 text-sm sm:text-base">本篇词汇 ({materialWords.length})</h2>
                 {materialWords.length === 0 ? (
-                  <div className="text-center py-12 text-[var(--color-text-secondary)]">
-                    <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>点击原文中的单词添加到这里</p>
+                  <div className="text-center py-10 sm:py-12 text-[var(--color-text-secondary)]">
+                    <BookOpen className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 opacity-50" />
+                    <p className="text-sm sm:text-base">点击原文中的单词添加到这里</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
                     {materialWords.map(word => (
-                      <div 
+                      <div
                         key={word.id}
                         className="card flex items-start justify-between group"
                       >
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-semibold text-lg">{word.word}</span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <span className="font-semibold text-base sm:text-lg">{word.word}</span>
                             {word.phonetic && (
                               <span className="text-sm text-[var(--color-text-secondary)]">
                                 {word.phonetic}
                               </span>
                             )}
                           </div>
-                          <p className="text-[var(--color-text-secondary)]">{word.definition}</p>
+                          <p className="text-sm text-[var(--color-text-secondary)]">{word.definition}</p>
                           {word.context && (
-                            <p className="text-sm text-[var(--color-text-secondary)] mt-2 italic">
+                            <p className="text-sm text-[var(--color-text-secondary)] mt-2 italic line-clamp-2">
                               "{word.context}"
                             </p>
                           )}
                         </div>
                         <button
                           onClick={() => removeWord(word.id)}
-                          className="p-2 opacity-0 group-hover:opacity-100 text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
+                          className="p-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 text-red-400 hover:bg-red-500/10 rounded-lg transition-all min-w-[36px] min-h-[36px] flex items-center justify-center flex-shrink-0"
+                          aria-label="删除"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -307,9 +318,9 @@ export default function Understanding() {
                   </div>
                 )}
               </div>
-              
+
               {/* Add Word Panel */}
-              <div className="w-80 border-l border-[var(--color-border)] p-6">
+              <div className="w-full md:w-80 border-t md:border-t-0 md:border-l border-[var(--color-border)] p-4 sm:p-6 md:overflow-auto flex-shrink-0">
                 <h3 className="font-semibold mb-4">添加单词</h3>
                 {selectedWord ? (
                   <div className="space-y-4">
@@ -319,7 +330,7 @@ export default function Understanding() {
                         type="text"
                         value={selectedWord.word}
                         readOnly
-                        className="w-full mt-1 bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] rounded-lg px-3 py-2"
+                        className="w-full mt-1 bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-base"
                       />
                     </div>
                     <div>
@@ -329,7 +340,7 @@ export default function Understanding() {
                         value={newWord.phonetic}
                         onChange={(e) => setNewWord({...newWord, phonetic: e.target.value})}
                         placeholder="/eI/ 或 /kæt/"
-                        className="w-full mt-1 bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] rounded-lg px-3 py-2"
+                        className="w-full mt-1 bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-base min-h-[44px]"
                       />
                     </div>
                     <div>
@@ -338,7 +349,7 @@ export default function Understanding() {
                         value={newWord.definition}
                         onChange={(e) => setNewWord({...newWord, definition: e.target.value})}
                         placeholder="输入中文释义..."
-                        className="w-full mt-1 bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] rounded-lg px-3 py-2 h-20 resize-none"
+                        className="w-full mt-1 bg-[var(--color-bg-tertiary)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-base h-20 resize-none"
                       />
                     </div>
                     <div className="flex gap-2">
@@ -373,14 +384,14 @@ export default function Understanding() {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
-              className="flex-1 p-6 overflow-auto"
+              className="flex-1 p-4 sm:p-6 overflow-auto"
             >
-              <h2 className="font-semibold mb-4">学习笔记</h2>
+              <h2 className="font-semibold mb-3 sm:mb-4 text-sm sm:text-base">学习笔记</h2>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="记录你的学习心得、语法知识点、长难句分析..."
-                className="dictation-input h-[calc(100%-60px)]"
+                className="dictation-input h-[calc(100%-60px)] text-base"
               />
             </motion.div>
           )}

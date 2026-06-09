@@ -1,12 +1,14 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Material, DictationProgress, Word, RecitationProgress, StudyStats } from '../types'
+import { deleteAudioFile, parseAudioUrl } from './fileStorage'
 
 interface AppState {
   // Materials
   materials: Material[]
   addMaterial: (material: Material) => void
   updateMaterialStatus: (id: string, status: Material['status']) => void
+  removeMaterial: (id: string) => Promise<void>
   
   // Dictation
   dictationProgress: DictationProgress | null
@@ -122,10 +124,23 @@ export const useStore = create<AppState>()(
         materials: [...state.materials, material] 
       })),
       updateMaterialStatus: (id, status) => set((state) => ({
-        materials: state.materials.map(m => 
+        materials: state.materials.map(m =>
           m.id === id ? { ...m, status } : m
         )
       })),
+      removeMaterial: async (id) => {
+        const target = get().materials.find(m => m.id === id)
+        if (target) {
+          // 同步清理 IndexedDB 中的音频文件
+          const parsed = parseAudioUrl(target.audioUrl)
+          if (parsed.type === 'idb' && parsed.id) {
+            await deleteAudioFile(parsed.id)
+          }
+        }
+        set((state) => ({
+          materials: state.materials.filter(m => m.id !== id)
+        }))
+      },
       
       // Dictation
       dictationProgress: null,

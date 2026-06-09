@@ -137,6 +137,8 @@ code {
   transition: all 0.2s;
   cursor: pointer;
   border: none;
+  min-height: 44px;          /* 触摸友好 */
+  -webkit-tap-highlight-color: transparent;  /* 去除 iOS 点击高亮 */
 }
 
 .btn-primary {
@@ -166,4 +168,69 @@ code {
 .btn-ghost:hover {
   color: var(--color-text);
   background: var(--color-bg-tertiary);
+}
+
+/* iOS 100vh 修复 */
+@supports (height: 100dvh) {
+  .h-screen-safe {
+    height: 100dvh;
+  }
+}
+
+/* 移动端滚动优化 */
+.scroll-area {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* 隐藏滚动条但保留滚动能力（Tab 横滚用） */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* 去除按钮 / 链接的双击缩放 */
+button, a {
+  touch-action: manipulation;
+}
+
+/* iOS 输入框默认样式重置（深色模式） */
+input, textarea, select {
+  -webkit-appearance: none;
+  appearance: none;
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text);
+}
+
+/* 输入框字体 ≥16px 避免 iOS 自动缩放 */
+input[type="text"],
+input[type="email"],
+input[type="number"],
+input[type="search"],
+textarea {
+  font-size: 16px;
+}
+@media (min-width: 640px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="number"],
+  input[type="search"],
+  textarea {
+    font-size: inherit;  /* 桌面端继承父元素 */
+  }
+}
+
+/* 防止长按选择图片 */
+img {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* 移动端 overscroll 防止刷新 */
+html, body {
+  overscroll-behavior-y: none;
 }

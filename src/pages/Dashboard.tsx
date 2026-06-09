@@ -126,78 +126,78 @@ export default function Dashboard() {
   const completed = materials.filter(m => m.status === 'completed')
   
   return (
-    <div className="p-8 max-w-6xl mx-auto">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
       {/* Welcome Section */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-10"
+        className="mb-6 sm:mb-10"
       >
-        <h1 className="text-3xl font-bold mb-2">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-2">
           欢迎回来，<span className="text-[var(--color-accent)]">英语学习者</span>
         </h1>
-        <p className="text-[var(--color-text-secondary)]">
+        <p className="text-sm sm:text-base text-[var(--color-text-secondary)]">
           坚持四阶段学习法，让你的听力突飞猛进
         </p>
       </motion.div>
-      
-      {/* Stats Grid */}
-      <motion.div 
+
+      {/* Stats Grid — 2列手机 / 4列桌面 */}
+      <motion.div
         variants={container}
         initial="hidden"
         animate="show"
-        className="grid grid-cols-4 gap-4 mb-10"
+        className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-10"
       >
-        <motion.div variants={item} className="card flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-600/20 flex items-center justify-center">
-            <Clock className="w-6 h-6 text-amber-500" />
+        <motion.div variants={item} className="card flex items-center gap-3 sm:gap-4">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-600/20 flex items-center justify-center flex-shrink-0">
+            <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-amber-500" />
           </div>
-          <div>
-            <p className="text-2xl font-bold">{Math.floor(stats.totalTime / 60)}</p>
-            <p className="text-sm text-[var(--color-text-secondary)]">学习分钟</p>
-          </div>
-        </motion.div>
-        
-        <motion.div variants={item} className="card flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/20 flex items-center justify-center">
-            <Target className="w-6 h-6 text-blue-500" />
-          </div>
-          <div>
-            <p className="text-2xl font-bold">{completed.length}</p>
-            <p className="text-sm text-[var(--color-text-secondary)]">已完成素材</p>
+          <div className="min-w-0">
+            <p className="text-xl sm:text-2xl font-bold">{Math.floor(stats.totalTime / 60)}</p>
+            <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] truncate">学习分钟</p>
           </div>
         </motion.div>
-        
-        <motion.div variants={item} className="card flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 flex items-center justify-center">
-            <Zap className="w-6 h-6 text-emerald-500" />
+
+        <motion.div variants={item} className="card flex items-center gap-3 sm:gap-4">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/20 flex items-center justify-center flex-shrink-0">
+            <Target className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500" />
           </div>
-          <div>
-            <p className="text-2xl font-bold">{stats.currentStreak}</p>
-            <p className="text-sm text-[var(--color-text-secondary)]">连续学习天数</p>
+          <div className="min-w-0">
+            <p className="text-xl sm:text-2xl font-bold">{completed.length}</p>
+            <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] truncate">已完成素材</p>
           </div>
         </motion.div>
-        
-        <motion.div variants={item} className="card flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-600/20 flex items-center justify-center">
-            <BookOpen className="w-6 h-6 text-purple-500" />
+
+        <motion.div variants={item} className="card flex items-center gap-3 sm:gap-4">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 flex items-center justify-center flex-shrink-0">
+            <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-500" />
           </div>
-          <div>
-            <p className="text-2xl font-bold">{stats.wordsLearned}</p>
-            <p className="text-sm text-[var(--color-text-secondary)]">掌握词汇</p>
+          <div className="min-w-0">
+            <p className="text-xl sm:text-2xl font-bold">{stats.currentStreak}</p>
+            <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] truncate">连续天数</p>
+          </div>
+        </motion.div>
+
+        <motion.div variants={item} className="card flex items-center gap-3 sm:gap-4">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-600/20 flex items-center justify-center flex-shrink-0">
+            <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-purple-500" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xl sm:text-2xl font-bold">{stats.wordsLearned}</p>
+            <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] truncate">掌握词汇</p>
           </div>
         </motion.div>
       </motion.div>
-      
-      {/* Learning Stages */}
-      <motion.div 
+
+      {/* Learning Stages — 1列手机 / 2列平板 / 3列桌面 */}
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3 }}
-        className="mb-10"
+        className="mb-6 sm:mb-10"
       >
-        <h2 className="text-xl font-semibold mb-4">四阶段学习法</h2>
-        <div className="grid grid-cols-3 gap-4">
+        <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">四阶段学习法</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {stages.map((stage, index) => (
             <motion.div
               key={stage.id}
@@ -221,15 +221,15 @@ export default function Dashboard() {
         </div>
       </motion.div>
       
-      {/* Method Explanation */}
-      <motion.div 
+      {/* Method Explanation — 1列手机 / 2列平板 / 4列桌面 */}
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.5 }}
-        className="mb-10"
+        className="mb-6 sm:mb-10"
       >
-        <h2 className="text-xl font-semibold mb-6">四阶段学习法详解</h2>
-        <div className="grid grid-cols-4 gap-4">
+        <h2 className="text-lg sm:text-xl font-semibold mb-4 sm:mb-6">四阶段学习法详解</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {methodDetails.map((method, index) => (
             <motion.div
               key={method.step}
@@ -266,32 +266,34 @@ export default function Dashboard() {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.7 }}
         >
-          <h2 className="text-xl font-semibold mb-4">进行中的学习</h2>
+          <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">进行中的学习</h2>
           <div className="space-y-3">
             {inProgress.map((material) => (
-              <div 
+              <div
                 key={material.id}
-                className="card flex items-center gap-4 cursor-pointer hover:border-[var(--color-accent)]"
+                className="card flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 cursor-pointer hover:border-[var(--color-accent)]"
                 onClick={() => navigate(`/dictation/${material.id}`)}
               >
-                <div className="w-14 h-14 rounded-xl bg-[var(--color-bg-tertiary)] flex items-center justify-center">
-                  <Play className="w-6 h-6 text-[var(--color-accent)]" />
+                <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-[var(--color-bg-tertiary)] flex items-center justify-center flex-shrink-0">
+                    <Play className="w-5 h-5 sm:w-6 sm:h-6 text-[var(--color-accent)]" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium truncate">{material.titleEn}</h3>
+                    <p className="text-sm text-[var(--color-text-secondary)] truncate">{material.title}</p>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <h3 className="font-medium">{material.titleEn}</h3>
-                  <p className="text-sm text-[var(--color-text-secondary)]">{material.title}</p>
-                </div>
-                <div className="text-right">
-                  <span className="text-sm text-[var(--color-accent)]">
+                <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center pl-15 sm:pl-0 sm:text-right gap-2">
+                  <span className="text-sm text-[var(--color-accent)] whitespace-nowrap">
                     {material.status === 'dictation' && '听写中'}
                     {material.status === 'understanding' && '理解中'}
                     {material.status === 'recitation' && '背诵中'}
                   </span>
-                  <p className="text-xs text-[var(--color-text-secondary)]">
+                  <p className="text-xs text-[var(--color-text-secondary)] whitespace-nowrap">
                     {Math.floor(material.duration / 60)} 分钟
                   </p>
                 </div>
-                <ChevronRight className="w-5 h-5 text-[var(--color-text-secondary)]" />
+                <ChevronRight className="hidden sm:block w-5 h-5 text-[var(--color-text-secondary)] flex-shrink-0" />
               </div>
             ))}
           </div>
@@ -304,7 +306,7 @@ export default function Dashboard() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.7 }}
-          className="text-center py-16"
+          className="text-center py-12 sm:py-16 px-4"
         >
           <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-500/20 to-amber-600/20 flex items-center justify-center mx-auto mb-6">
             <Play className="w-10 h-10 text-amber-500" />

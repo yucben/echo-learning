@@ -172,33 +172,42 @@ export default function Recitation() {
   const progress = segments.length > 0 ? (completedCount / segments.length) * 100 : 0
   
   return (
-    <div className="h-[calc(100vh-72px)] flex flex-col">
-      <div className="px-8 py-4 border-b border-[var(--color-border)]">
-        <div className="flex items-center gap-4">
-          <button 
+    <div className="h-[calc(100vh-56px)] sm:h-[calc(100vh-64px)] md:h-[calc(100vh-72px)]
+                    flex flex-col">
+      <div className="px-3 sm:px-6 lg:px-8 py-3 sm:py-4 border-b border-[var(--color-border)] flex-shrink-0">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <button
             onClick={() => {
               ttsRef.current?.cancel()
               navigate(`/understanding/${material.id}`)
-            }} 
-            className="p-2 rounded-lg hover:bg-[var(--color-bg-tertiary)] transition-colors"
+            }}
+            className="p-2 rounded-lg hover:bg-[var(--color-bg-tertiary)] transition-colors
+                       min-w-[44px] min-h-[44px] flex items-center justify-center flex-shrink-0"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
-          <div className="flex-1">
-            <h1 className="font-semibold">{material.titleEn}</h1>
-            <p className="text-sm text-[var(--color-text-secondary)]">{material.title}</p>
+          <div className="flex-1 min-w-0">
+            <h1 className="font-semibold text-sm sm:text-base truncate">{material.titleEn}</h1>
+            <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] truncate">{material.title}</p>
           </div>
-          <span className="text-sm text-purple-400 px-3 py-1 bg-purple-500/10 rounded-full">
+          <span className="hidden md:inline-block text-sm text-purple-400 px-3 py-1 bg-purple-500/10 rounded-full whitespace-nowrap">
             第三阶段：极限背诵
           </span>
-          <button onClick={handleFinish} className="btn btn-primary">
-            <Trophy className="w-5 h-5" />完成学习
+          <button onClick={handleFinish} className="btn btn-primary text-sm whitespace-nowrap min-h-[44px]">
+            <Trophy className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="hidden sm:inline">完成学习</span>
+            <span className="sm:hidden">完成</span>
           </button>
         </div>
       </div>
-      
-      <div className="flex-1 flex overflow-hidden">
-        <div className="flex-1 p-8 flex flex-col max-w-3xl mx-auto">
+
+      {/* 移动端阶段标签 */}
+      <div className="md:hidden px-3 py-2 bg-purple-500/10 border-b border-[var(--color-border)] flex-shrink-0">
+        <span className="text-xs text-purple-400 font-medium">第三阶段：极限背诵</span>
+      </div>
+
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+        <div className="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col md:max-w-3xl md:mx-auto w-full overflow-auto">
           <div className="mb-8">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-[var(--color-text-secondary)]">整体进度</span>
@@ -213,61 +222,62 @@ export default function Recitation() {
             </div>
           </div>
           
-          <div className="flex-1 flex flex-col items-center justify-center">
+          <div className="flex-1 flex flex-col items-center justify-center min-h-[300px]">
             <AnimatePresence mode="wait">
               <motion.div
                 key={currentSegmentId}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                className="text-center mb-8"
+                className="text-center mb-6 sm:mb-8 px-2"
               >
                 <p className="text-sm text-[var(--color-text-secondary)] mb-2">
                   段落 {currentSegmentId + 1} / {segments.length}
                 </p>
                 {showText ? (
-                  <p className="text-2xl leading-relaxed max-w-2xl">{segments[currentSegmentId]?.text}</p>
+                  <p className="text-lg sm:text-2xl leading-relaxed max-w-2xl">{segments[currentSegmentId]?.text}</p>
                 ) : (
-                  <div className="w-64 h-16 bg-[var(--color-bg-tertiary)] rounded-lg flex items-center justify-center">
-                    <span className="text-[var(--color-text-secondary)]">请背诵...</span>
+                  <div className="w-48 sm:w-64 h-14 sm:h-16 bg-[var(--color-bg-tertiary)] rounded-lg flex items-center justify-center mx-auto">
+                    <span className="text-[var(--color-text-secondary)] text-sm sm:text-base">请背诵...</span>
                   </div>
                 )}
               </motion.div>
             </AnimatePresence>
-            
-            <div className="flex items-center gap-4">
-              <button 
+
+            <div className="flex items-center gap-2 sm:gap-4 flex-wrap justify-center">
+              <button
                 onClick={() => setShowText(!showText)}
-                className="btn btn-secondary"
+                className="btn btn-secondary text-sm min-h-[44px]"
               >
                 {showText ? '隐藏原文' : '显示原文'}
               </button>
-              
-              <button 
+
+              <button
                 onClick={togglePlay}
-                className="w-16 h-16 rounded-full bg-amber-500 hover:bg-amber-400 flex items-center justify-center transition-colors"
+                className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-amber-500 hover:bg-amber-400
+                           flex items-center justify-center transition-colors"
               >
-                {isPlaying ? <Pause className="w-8 h-8 text-black" /> : <Play className="w-8 h-8 text-black ml-1" />}
+                {isPlaying ? <Pause className="w-7 h-7 sm:w-8 sm:h-8 text-black" /> : <Play className="w-7 h-7 sm:w-8 sm:h-8 text-black ml-0.5 sm:ml-1" />}
               </button>
-              
-              <button 
+
+              <button
                 onClick={useHint}
                 disabled={hintCount >= 3}
-                className="btn btn-secondary"
+                className="btn btn-secondary text-sm min-h-[44px]"
               >
-                <Volume2 className="w-5 h-5" />
+                <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />
                 提示 ({3 - hintCount})
               </button>
             </div>
-            
-            <div className="mt-8 flex items-center gap-4">
+
+            <div className="mt-6 sm:mt-8 flex items-center gap-3 sm:gap-4 flex-wrap justify-center">
               <button
                 onClick={() => setPracticeMode(!practiceMode)}
-                className={`px-6 py-3 rounded-lg font-medium transition-colors ${practiceMode ? 'bg-purple-500 text-white' : 'bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)]'}`}
+                className={`px-5 sm:px-6 py-2.5 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-colors min-h-[44px] ${practiceMode ? 'bg-purple-500 text-white' : 'bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)]'}`}
               >
                 {practiceMode ? '练习中...' : '开始练习'}
               </button>
-              
+
               <AnimatePresence>
                 {practiceMode && (
                   <motion.div
@@ -277,9 +287,9 @@ export default function Recitation() {
                   >
                     <button
                       onClick={handleSegmentComplete}
-                      className="btn btn-primary"
+                      className="btn btn-primary text-sm min-h-[44px]"
                     >
-                      <CheckCircle2 className="w-5 h-5" />
+                      <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
                       标记完成
                     </button>
                   </motion.div>
@@ -287,8 +297,8 @@ export default function Recitation() {
               </AnimatePresence>
             </div>
           </div>
-          
-          <div className="mt-6 flex items-center justify-center gap-4 text-sm">
+
+          <div className="mt-6 flex items-center justify-center gap-2 sm:gap-4 text-xs sm:text-sm flex-wrap text-center">
             <Target className="w-4 h-4 text-[var(--color-text-secondary)]" />
             <span className="text-[var(--color-text-secondary)]">目标语速:</span>
             <span className="text-[var(--color-accent)] font-medium">
@@ -296,8 +306,8 @@ export default function Recitation() {
             </span>
           </div>
         </div>
-        
-        <div className="w-80 border-l border-[var(--color-border)] p-4 overflow-auto">
+
+        <div className="w-full md:w-80 border-t md:border-t-0 md:border-l border-[var(--color-border)] p-4 md:overflow-auto flex-shrink-0 max-h-[40vh] md:max-h-none">
           <h3 className="font-semibold mb-4 flex items-center gap-2">
             <Clock className="w-5 h-5" />
             段落列表
