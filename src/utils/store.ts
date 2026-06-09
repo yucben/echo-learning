@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Material, DictationProgress, Word, RecitationProgress, StudyStats } from '../types'
 import { deleteAudioFile, parseAudioUrl } from './fileStorage'
+import { BE01_TRANSCRIPT, BE01_TRANSLATION } from '../data/sample-materials/business-english-01'
 
 interface AppState {
   // Materials
@@ -112,6 +113,21 @@ Dr. Chen: Absolutely. The technology exists to address this crisis. What we need
 陈博士：当然有。解决这场危机的技术已经有了。我们需要的是实施它的集体意志。全世界年轻人都在要求采取行动，我相信我们可以迎接这一挑战。`,
     createdAt: Date.now() - 86400000,
     status: 'pending'
+  },
+  {
+    id: 'be-01',
+    title: 'How to Explain a Project You Worked On',
+    titleEn: '商务英语 p01 - 如何用英语介绍项目经历',
+    duration: 2252, // 37:32 — B站 BV14rd3BJExq p01
+    category: 'interview',
+    difficulty: 'intermediate',
+    audioUrl: '/samples/business-english-01.m4a',
+    transcript: BE01_TRANSCRIPT,
+    translation: BE01_TRANSLATION,
+    sourceUrl: 'https://www.bilibili.com/video/BV14rd3BJExq?p=1',
+    videoId: 'BV14rd3BJExq',
+    createdAt: Date.now() - 172800000,
+    status: 'pending'
   }
 ]
 
@@ -119,7 +135,26 @@ export const useStore = create<AppState>()(
   persist(
     (set, get) => ({
       // Materials
-      materials: sampleMaterials,
+      // 启动时合并：在 localStorage 中保留用户上传/状态变更的素材，
+      // 同时补齐 sampleMaterials 中新增的示例素材（按 id 去重）
+      materials: (() => {
+        try {
+          const raw = localStorage.getItem('echo-learning-storage')
+          if (raw) {
+            const persisted = JSON.parse(raw)
+            const persistedMaterials: Material[] = persisted?.state?.materials ?? []
+            const persistedIds = new Set(persistedMaterials.map(m => m.id))
+            const newSamples = sampleMaterials.filter(m => !persistedIds.has(m.id))
+            if (newSamples.length > 0) {
+              return [...persistedMaterials, ...newSamples]
+            }
+            return persistedMaterials
+          }
+        } catch {
+          // localStorage 读取失败（隐私模式/损坏），退回种子
+        }
+        return sampleMaterials
+      })(),
       addMaterial: (material) => set((state) => ({ 
         materials: [...state.materials, material] 
       })),
